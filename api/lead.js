@@ -1,8 +1,7 @@
 const crypto = require('crypto');
+const { splitFullName, validateName, validatePhone } = require('../lib/validation');
 
 const DEFAULT_META_PIXEL_ID = '1025014860112458';
-const VALID_CYPRUS_FIRST_DIGITS = new Set(['2', '7', '8', '9']);
-const MIN_HUMAN_SUBMIT_MS = 700;
 
 function sha256Normalized(value) {
   if (!value) return undefined;
@@ -35,111 +34,10 @@ function parseBody(req) {
   return req.body;
 }
 
-function splitFullName(fullName) {
-  const cleaned = String(fullName || '').trim().replace(/\s+/g, ' ');
-  const firstSpace = cleaned.indexOf(' ');
-  if (firstSpace === -1) {
-    return { fullName: cleaned, firstName: cleaned, lastName: '' };
-  }
-  return {
-    fullName: cleaned,
-    firstName: cleaned.slice(0, firstSpace),
-    lastName: cleaned.slice(firstSpace + 1).trim()
-  };
-}
-
-function validateName(rawName) {
-  const cleaned = String(rawName || '').trim().replace(/\s+/g, ' ');
-  if (cleaned.length < 2) {
-    return { valid: false, message: 'Please enter your full name.' };
-  }
-  if (cleaned.length > 120) {
-    return { valid: false, message: 'Please enter a shorter name.' };
-  }
-  // Must contain at least 2 Unicode letters (supports English & Greek scripts)
-  const letters = cleaned.match(/\p{L}/gu) || [];
-  if (letters.length < 2) {
-    return { valid: false, message: 'Please enter a valid name.' };
-  }
-  // Reject obvious URLs or repeated single-character junk like "aaaaaa"
-  if (/https?:\/\/|www\./i.test(cleaned)) {
-    return { valid: false, message: 'Please enter your name without links.' };
-  }
-  const compactLower = letters.join('').toLowerCase();
-  if (compactLower.length >= 4 && /^(\p{L})\1+$/u.test(compactLower)) {
-    return { valid: false, message: 'Please enter your real name.' };
-  }
-  return { valid: true, cleaned };
-}
-
-function isObviousJunkDigits(local8) {
-  // All 8 digits identical (e.g., 99999999, 11111111)
-  if (/^(\d)\1{7}$/.test(local8)) return true;
-  // 6 or more identical consecutive digits (e.g., 99111111, 99000000)
-  if (/(\d)\1{5,}/.test(local8)) return true;
-  // Exact common sequential patterns
-  const sequential = [
-    '12345678',
-    '87654321',
-    '01234567',
-    '76543210',
-    '23456789',
-    '98765432'
-  ];
-  if (sequential.includes(local8)) return true;
-  // Local number ending in 123456 or 654321 (e.g. 99123456)
-  if (/(123456|234567|345678|654321|765432|876543)$/.test(local8)) return true;
-  // Repeated 2-digit pair 4 times (e.g. 99999999 or 91919191)
-  if (/^(\d{2})\1{3}$/.test(local8)) return true;
-  return false;
-}
-
-function validateCyprusPhone(rawPhone) {
-  const digits = String(rawPhone || '').replace(/\D/g, '');
-  let local8 = '';
-
-  if (digits.length === 8) {
-    local8 = digits;
-  } else if (digits.startsWith('357') && digits.length === 11) {
-    local8 = digits.slice(3);
-  } else if (digits.startsWith('00357') && digits.length === 13) {
-    local8 = digits.slice(5);
-  } else {
-    return {
-      valid: false,
-      message: 'Please enter a valid 8-digit Cyprus phone number (e.g. 99 123456).'
-    };
-  }
-
-  if (!VALID_CYPRUS_FIRST_DIGITS.has(local8[0])) {
-    return {
-      valid: false,
-      message: 'Please enter a valid Cyprus mobile or landline number.'
-    };
-  }
-
-  if (isObviousJunkDigits(local8)) {
-    return {
-      valid: false,
-      message: 'That phone number looks incomplete or invalid. Please double-check it.'
-    };
-  }
-
-  const e164 = `+357${local8}`;
-  const formatted = `+357 ${local8.slice(0, 2)} ${local8.slice(2)}`;
-  return {
-    valid: true,
-    e164,
-    digitsWithCountry: `357${local8}`,
-    local8,
-    formatted
-  };
-}
-
 async function verifyTurnstile(token, remoteIp) {
   const secretKey = (process.env.TURNSTILE_SECRET_KEY || '').trim();
   if (!secretKey) {
-    return { verified: true, skipped: true };
+    throw new Error('Turnstile is not configured');
   }
   if (!token) {
     return { verified: false, reason: 'missing-token' };
@@ -167,56 +65,31 @@ async function verifyTurnstile(token, remoteIp) {
   };
 }
 
-async function saveToGoogleSheet(lead) {
+async function sheetOperation(lead, operation, extra = {}) {
   const webhookUrl = (process.env.GOOGLE_SHEET_WEBHOOK_URL || '').trim();
-  if (!webhookUrl) return { configured: false };
-
-  const payload = {
-    secret: (process.env.GOOGLE_SHEET_WEBHOOK_SECRET || '').trim(),
-    timestampCyprus: lead.timestampCyprus,
-    timestampIso: lead.timestampIso,
-    fullName: lead.fullName,
-    firstName: lead.firstName,
-    lastName: lead.lastName,
-    phoneE164: lead.phone.e164,
-    phoneFormatted: lead.phone.formatted,
-    pageUrl: lead.pageUrl,
-    formLocation: lead.formLocation,
-    utmSource: lead.utm.source,
-    utmMedium: lead.utm.medium,
-    utmCampaign: lead.utm.campaign,
-    utmContent: lead.utm.content,
-    utmTerm: lead.utm.term,
-    eventId: lead.eventId,
-    status: 'New'
-  };
-
+  const secret = (process.env.GOOGLE_SHEET_WEBHOOK_SECRET || '').trim();
+  if (!webhookUrl || !secret) throw new Error('Required spreadsheet configuration is missing');
   const response = await fetch(webhookUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-    redirect: 'follow',
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, redirect: 'follow',
+    body: JSON.stringify({ operation, secret, eventId: lead.eventId, timestampCyprus: lead.timestampCyprus, timestampIso: lead.timestampIso, fullName: lead.fullName, phoneE164: lead.phone.e164, phoneFormatted: lead.phone.formatted, pageUrl: lead.pageUrl, formLocation: lead.formLocation, utmSource: lead.utm.source, utmMedium: lead.utm.medium, utmCampaign: lead.utm.campaign, utmContent: lead.utm.content, utmTerm: lead.utm.term, ...extra }),
     signal: AbortSignal.timeout(10000)
   });
+  if (!response.ok) throw new Error('Spreadsheet request failed');
+  const result = await response.json();
+  if (!result || result.ok !== true || result.protocolVersion !== 2 || result.eventId !== lead.eventId) throw new Error('Spreadsheet did not explicitly confirm this request');
+  return result;
+}
 
-  const text = await response.text().catch(() => '');
-  if (!response.ok) {
-    throw new Error(`Google Sheet webhook failed (${response.status}): ${text.slice(0, 200)}`);
-  }
+function missingConfiguration() {
+  const missing = ['TURNSTILE_SITE_KEY', 'TURNSTILE_SECRET_KEY', 'GOOGLE_SHEET_WEBHOOK_URL', 'GOOGLE_SHEET_WEBHOOK_SECRET'].filter(key => !(process.env[key] || '').trim());
+  const emailReady = process.env.RESEND_API_KEY && process.env.NOTIFICATION_EMAIL;
+  const smsReady = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && (process.env.TWILIO_FROM_NUMBER || process.env.TWILIO_MESSAGING_SERVICE_SID) && process.env.NOTIFICATION_SMS_TO;
+  if (!emailReady && !smsReady) missing.push('NOTIFICATION_CHANNEL');
+  return missing;
+}
 
-  try {
-    const parsed = JSON.parse(text);
-    if (parsed && parsed.ok === false) {
-      throw new Error(`Google Sheet webhook rejected payload: ${parsed.error || 'unknown error'}`);
-    }
-  } catch (err) {
-    if (err instanceof Error && err.message.startsWith('Google Sheet webhook rejected')) {
-      throw err;
-    }
-    // Non-JSON 200 responses are tolerated unless explicitly { ok: false }
-  }
-
-  return { configured: true, ok: true };
+function safePageUrl(value) {
+  try { const url = new URL(value); return url.protocol === 'https:' ? url.origin + url.pathname : ''; } catch { return ''; }
 }
 
 async function sendResendEmail(lead) {
@@ -247,7 +120,7 @@ async function sendResendEmail(lead) {
       </div>
       <div style="background: #ffffff; padding: 28px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 14px 14px;">
         <p style="margin: 0 0 18px; font-size: 15px; color: #4e5765;">
-          Please call this patient back within <strong>10 minutes</strong> from <strong>+357 99 373304</strong>:
+          Please return this callback request <strong>during clinic working hours</strong> from <strong>+357 99 373304</strong>:
         </p>
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 22px;">
           <tr>
@@ -288,6 +161,7 @@ async function sendResendEmail(lead) {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
+      'Idempotency-Key': lead.eventId,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
@@ -295,7 +169,7 @@ async function sendResendEmail(lead) {
       to: recipients,
       subject: `Call Back Now: ${lead.fullName} (${lead.phone.formatted})`,
       html,
-      text: `New Callback Request (call within 10 minutes)\nName: ${lead.fullName}\nPhone: ${lead.phone.formatted}\nTime: ${lead.timestampCyprus}\nPage: ${lead.pageUrl}`
+      text: `New Callback Request (call during clinic working hours)\nName: ${lead.fullName}\nPhone: ${lead.phone.formatted}\nTime: ${lead.timestampCyprus}\nPage: ${lead.pageUrl}`
     }),
     signal: AbortSignal.timeout(10000)
   });
@@ -325,7 +199,7 @@ async function sendTwilioSms(lead) {
     .filter(Boolean);
 
   const authHeader = 'Basic ' + Buffer.from(`${accountSid}:${authToken}`).toString('base64');
-  const messageBody = `New callback lead (${lead.timestampCyprus}):\n${lead.fullName}\n${lead.phone.formatted}\nPlease call within 10 mins.`;
+  const messageBody = `New callback lead (${lead.timestampCyprus}):\n${lead.fullName}\n${lead.phone.formatted}\nPlease call during clinic working hours.`;
 
   const results = await Promise.all(
     recipients.map(async (to) => {
@@ -370,7 +244,7 @@ async function sendMetaCapiLead(lead) {
   const userData = {
     ph: [sha256Normalized(lead.phone.digitsWithCountry)],
     fn: [sha256Normalized(lead.firstName)],
-    country: [sha256Normalized('cy')]
+    ...(lead.phone.country ? { country: [sha256Normalized(lead.phone.country)] } : {})
   };
   if (lead.lastName) {
     userData.ln = [sha256Normalized(lead.lastName)];
@@ -428,153 +302,39 @@ async function sendMetaCapiLead(lead) {
 }
 
 module.exports = async function handler(req, res) {
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
-    return res.status(405).json({ ok: false, error: 'Method not allowed' });
-  }
-
+  res.setHeader('Cache-Control', 'no-store');
+  if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); return res.status(405).json({ ok: false, error: 'Method not allowed' }); }
   const body = parseBody(req);
-
-  // 1. Invisible honeypot & timing bot trap:
-  // Return fake 200 with trackLead:false so bots stop retrying, while NEVER firing Lead events or notifying clinic.
-  const honeypot = String(body.website || '').trim();
-  const elapsedMs = Number(body.elapsedMs);
-  if (honeypot.length > 0 || (Number.isFinite(elapsedMs) && elapsedMs >= 0 && elapsedMs < MIN_HUMAN_SUBMIT_MS)) {
-    return res.status(200).json({ ok: true, trackLead: false });
-  }
-
-  // 2. Validate Full Name and Cyprus Phone before touching external APIs
+  if (String(body.website || '').trim()) return res.status(200).json({ ok: true, trackLead: false });
   const nameCheck = validateName(body.fullName);
-  if (!nameCheck.valid) {
-    return res.status(400).json({
-      ok: false,
-      field: 'fullName',
-      error: nameCheck.message
-    });
-  }
-
-  const phoneCheck = validateCyprusPhone(body.phone);
-  if (!phoneCheck.valid) {
-    return res.status(400).json({
-      ok: false,
-      field: 'phone',
-      error: phoneCheck.message
-    });
-  }
-
+  if (!nameCheck.valid) return res.status(400).json({ ok: false, field: 'fullName', error: nameCheck.message });
+  const phoneCheck = validatePhone(body.phone);
+  if (!phoneCheck.valid) return res.status(400).json({ ok: false, field: 'phone', error: phoneCheck.message });
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(body.submissionId || ''))) return res.status(400).json({ ok: false, code: 'REQUEST_ID_REQUIRED', error: 'Please reload the page and try again.' });
+  const missing = missingConfiguration();
+  if (missing.length) { console.error('[lead] Missing configuration names:', missing); return res.status(503).json({ ok: false, code: 'FORM_UNAVAILABLE', error: 'Online callback requests are temporarily unavailable. Please call us instead.' }); }
   const clientIp = getClientIp(req);
-
-  // 3. Verify Cloudflare Turnstile server-side when configured
   try {
-    const turnstileResult = await verifyTurnstile(body.turnstileToken, clientIp);
-    if (!turnstileResult.verified) {
-      return res.status(403).json({
-        ok: false,
-        code: 'TURNSTILE_FAILED',
-        error: 'Security check could not be verified. Please try again.'
-      });
-    }
-  } catch (err) {
-    console.error('[lead] Turnstile verification error:', err);
-    return res.status(502).json({
-      ok: false,
-      code: 'TURNSTILE_UNAVAILABLE',
-      error: 'Could not verify security check right now.'
-    });
-  }
-
-  // 4. Prepare normalized lead object
+    const check = await verifyTurnstile(body.turnstileToken, clientIp);
+    if (!check.verified) return res.status(403).json({ ok: false, code: 'TURNSTILE_FAILED', error: 'Please complete the security check and try again.' });
+  } catch { return res.status(503).json({ ok: false, code: 'TURNSTILE_UNAVAILABLE', error: 'The security check is unavailable. Please try again or call us.' }); }
   const nameParts = splitFullName(nameCheck.cleaned);
   const now = new Date();
-  const timestampCyprus = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Europe/Nicosia',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
-  }).format(now);
-
-  const eventId = `lead_${crypto.randomUUID()}`;
+  const timestampCyprus = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Nicosia', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(now);
   const utm = body.utm && typeof body.utm === 'object' ? body.utm : {};
-
-  const lead = {
-    eventId,
-    timestampIso: now.toISOString(),
-    timestampCyprus,
-    fullName: nameParts.fullName,
-    firstName: nameParts.firstName,
-    lastName: nameParts.lastName,
-    phone: phoneCheck,
-    pageUrl: String(body.pageUrl || '').slice(0, 500),
-    formLocation: String(body.formLocation || 'hero').slice(0, 60),
-    fbp: String(body.fbp || '').slice(0, 200),
-    fbc: String(body.fbc || '').slice(0, 200),
-    clientIp,
-    userAgent: String(req.headers['user-agent'] || '').slice(0, 400),
-    utm: {
-      source: String(utm.utm_source || '').slice(0, 120),
-      medium: String(utm.utm_medium || '').slice(0, 120),
-      campaign: String(utm.utm_campaign || '').slice(0, 120),
-      content: String(utm.utm_content || '').slice(0, 120),
-      term: String(utm.utm_term || '').slice(0, 120)
-    }
-  };
-
-  // 5. Save lead & trigger notifications in parallel
-  const [sheetRes, emailRes, smsRes] = await Promise.allSettled([
-    saveToGoogleSheet(lead),
-    sendResendEmail(lead),
-    sendTwilioSms(lead)
-  ]);
-
-  const sinkOutcomes = { sheet: sheetRes, email: emailRes, sms: smsRes };
-  for (const [channel, result] of Object.entries(sinkOutcomes)) {
-    if (result.status === 'rejected') {
-      console.error(`[lead] ${channel} failed for ${eventId}:`, result.reason);
-    }
+  const lead = { ...nameParts, eventId: 'lead_' + body.submissionId.toLowerCase(), timestampIso: now.toISOString(), timestampCyprus, phone: phoneCheck, pageUrl: safePageUrl(body.pageUrl), formLocation: String(body.formLocation || 'hero').slice(0, 60), fbp: String(body.fbp || '').slice(0, 200), fbc: String(body.fbc || '').slice(0, 400), clientIp, userAgent: String(req.headers['user-agent'] || '').slice(0, 400), utm: Object.fromEntries(['source', 'medium', 'campaign', 'content', 'term'].map(key => [key, String(utm['utm_' + key] || '').slice(0, 120)])) };
+  let capture;
+  try { capture = await sheetOperation(lead, 'capture'); }
+  catch { console.error('[lead] Storage not confirmed', lead.eventId); return res.status(503).json({ ok: false, code: 'STORAGE_UNCONFIRMED', error: 'We could not confirm your request. Please retry or call us instead.' }); }
+  if (capture.state !== 'notified') {
+    if (!capture.claimToken) return res.status(409).json({ ok: false, code: 'REQUEST_IN_PROGRESS', error: 'Your request is still being processed. Please wait a moment and retry.' });
+    const results = await Promise.allSettled([sendResendEmail(lead), sendTwilioSms(lead)]);
+    const channels = results.flatMap((result, index) => result.status === 'fulfilled' && result.value && result.value.configured && result.value.ok ? [index === 0 ? 'email' : 'sms'] : []);
+    let completion;
+    try { completion = await sheetOperation(lead, 'complete', { claimToken: capture.claimToken, notificationSucceeded: channels.length > 0, channels }); }
+    catch { return res.status(503).json({ ok: false, code: 'CONFIRMATION_PENDING', error: 'Your details were saved, but confirmation is delayed. Please retry or call us.' }); }
+    if (!channels.length || completion.state !== 'notified') return res.status(503).json({ ok: false, code: 'NOTIFICATION_PENDING', error: 'Your details were saved, but we could not alert the clinic. Please retry or call us instead.' });
   }
-
-  // Ensure at least one durable lead sink (Google Sheet, Email, or SMS) actually succeeded.
-  // Never silently lose a lead, and never fire Meta Lead events if capture failed!
-  const leadSinks = [sheetRes, emailRes, smsRes];
-  const anySinkConfigured = leadSinks.some(
-    (r) => r.status === 'rejected' || (r.status === 'fulfilled' && r.value && r.value.configured)
-  );
-  const anySinkSucceeded = leadSinks.some(
-    (r) => r.status === 'fulfilled' && r.value && r.value.configured && r.value.ok
-  );
-
-  if (!anySinkSucceeded) {
-    console.error('[lead] CRITICAL: Lead delivery failed across all sinks. Backup log:', {
-      eventId,
-      fullName: lead.fullName,
-      phone: lead.phone.e164,
-      timestampCyprus,
-      anySinkConfigured
-    });
-    return res.status(502).json({
-      ok: false,
-      error: 'We could not deliver your request right now. Please call us directly instead.'
-    });
-  }
-
-  // 6. Fire server-side Meta CAPI Lead event only after confirmed capture (deduped via eventId)
-  try {
-    await sendMetaCapiLead(lead);
-  } catch (err) {
-    console.error(`[lead] capi failed for ${eventId}:`, err);
-  }
-
-  return res.status(200).json({
-    ok: true,
-    trackLead: true,
-    eventId,
-    firstName: lead.firstName,
-    lastName: lead.lastName,
-    phoneFormatted: lead.phone.formatted,
-    phoneDigits: lead.phone.digitsWithCountry
-  });
+  try { await sendMetaCapiLead(lead); } catch { console.error('[lead] Meta event delivery failed', lead.eventId); }
+  return res.status(200).json({ ok: true, trackLead: true, eventId: lead.eventId, firstName: lead.firstName, lastName: lead.lastName, phoneFormatted: lead.phone.formatted, phoneDigits: lead.phone.digitsWithCountry, country: lead.phone.country.toLowerCase() });
 };

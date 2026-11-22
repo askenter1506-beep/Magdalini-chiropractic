@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@25.3.1/build/css/intlTelInput.css">
-    <link rel="stylesheet" href="styles.css?v=3.0">
+    <link rel="stylesheet" href="styles.css?v=3.1">
     <style>
         /* Critical Phone Modal Styles (ensures desktop popup appears centered even if external stylesheet is cached) */
         .phone-modal {
@@ -192,7 +192,7 @@
                         </div>
 
                         <div class="form-field">
-                            <label class="form-label" for="contact-phone">Phone number (Cyprus)</label>
+                            <label class="form-label" for="contact-phone">Phone number</label>
                             <input
                                 type="tel"
                                 id="contact-phone"
@@ -222,7 +222,7 @@
 
                         <p class="callback-trust-note">
                             <span class="material-symbols-outlined">schedule</span>
-                            <span>We’ll call you within 10 minutes from <strong>+357 99 373304</strong></span>
+                            <span>We’ll call you from <strong>+357 99 373304</strong> the same working day, or the next working day if the clinic is closed</span>
                         </p>
                     </form>
 
@@ -231,7 +231,7 @@
                             <span class="material-symbols-outlined">check_circle</span>
                         </div>
                         <h3>Callback requested!</h3>
-                        <p>Thank you, <strong data-confirm-name></strong>. Please keep your phone nearby — we’ll call you within 10 minutes from <strong>+357 99 373304</strong>.</p>
+                        <p>Thank you, <strong data-confirm-name></strong>. Please keep your phone nearby — we’ll call you from <strong>+357 99 373304</strong> the same working day, or the next working day if the clinic is closed.</p>
                         <div class="callback-success-number" data-confirm-phone></div>
                     </div>
                 </div>
@@ -315,6 +315,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@25.3.1/build/js/intlTelInputWithUtils.min.js" defer></script>
-    <script src="callback-form.js?v=1.0" defer></script>
+    <script src="callback-form.js?v=2.0" defer></script>
 </body>
 </html>

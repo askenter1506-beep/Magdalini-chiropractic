@@ -4,7 +4,7 @@
   const META_PIXEL_ID = '1025014860112458';
   const CLINIC_PHONE_HREF = '+35799373304';
   const CLINIC_PHONE_DISPLAY = '+357 99 373304';
-  const VALID_CYPRUS_FIRST_DIGITS = new Set(['2', '7', '8', '9']);
+  const requestIds = new Map();
 
   const pageLoadedAt = Date.now();
   let turnstileSiteKey = '';
@@ -31,7 +31,7 @@
     let fbc = getCookie('_fbc');
     const fbclid = params.get('fbclid');
     if (!fbc && fbclid) {
-      fbc = 'fb.1.' + Math.floor(Date.now() / 1000) + '.' + fbclid;
+      fbc = 'fb.1.' + Date.now() + '.' + fbclid;
     }
 
     return { utm, fbp, fbc };
@@ -51,6 +51,7 @@
   }
 
   function validateName(raw) {
+    if (/[\u0000-\u001f\u007f]/.test(String(raw || ''))) return { valid: false, message: 'Please enter your full name without control characters.' };
     const cleaned = String(raw || '').trim().replace(/\s+/g, ' ');
     if (cleaned.length < 2) {
       return { valid: false, message: 'Please enter your full name.' };
@@ -59,11 +60,11 @@
       return { valid: false, message: 'Please enter a shorter name.' };
     }
     // Support Latin, Greek, and other Unicode letters
-    const letters = cleaned.match(/[A-Za-z\u00C0-\u024F\u0370-\u03FF\u1F00-\u1FFF]/g) || [];
+    const letters = cleaned.match(/\p{L}/gu) || [];
     if (letters.length < 2) {
       return { valid: false, message: 'Please enter a valid name.' };
     }
-    if (/https?:\/\/|www\./i.test(cleaned)) {
+    if (/^[=]|[\u0000-\u001f\u007f]|https?:\/\/|www\./i.test(cleaned)) {
       return { valid: false, message: 'Please enter your name without web links.' };
     }
     const lowerLetters = letters.join('').toLowerCase();
@@ -73,95 +74,46 @@
     return { valid: true, cleaned };
   }
 
-  function isObviousJunkDigits(local8) {
-    if (/^(\d)\1{7}$/.test(local8)) return true; // 99999999, 11111111
-    if (/(\d)\1{5,}/.test(local8)) return true; // 99111111, 99000000
-    const sequential = [
-      '12345678',
-      '87654321',
-      '01234567',
-      '76543210',
-      '23456789',
-      '98765432'
-    ];
-    if (sequential.includes(local8)) return true;
-    if (/(123456|234567|345678|654321|765432|876543)$/.test(local8)) return true;
-    if (/^(\d{2})\1{3}$/.test(local8)) return true;
-    return false;
-  }
-
-  function extractCyprusLocal8(raw) {
-    const digits = String(raw || '').replace(/\D/g, '');
-    if (digits.length === 8) return digits;
-    if (digits.startsWith('357') && digits.length === 11) return digits.slice(3);
-    if (digits.startsWith('00357') && digits.length === 13) return digits.slice(5);
-    return null;
-  }
-
-  function validateCyprusPhone(rawValue, itiInstance) {
-    const trimmed = String(rawValue || '').trim();
-    if (!trimmed) {
-      return { valid: false, message: 'Please enter your Cyprus phone number.' };
-    }
-
-    let candidateNumber = trimmed;
-    let itiValid = null;
-
+  function validatePhone(rawValue, itiInstance) {
+    let input = String(rawValue || '').trim();
+    if (!input) return { valid: false, message: 'Please enter your phone number.' };
+    if (input.startsWith('00')) input = '+' + input.slice(2);
+    let e164 = input;
     if (itiInstance) {
       try {
-        const fullNum = itiInstance.getNumber();
-        if (fullNum) candidateNumber = fullNum;
-        if (typeof itiInstance.isValidNumber === 'function') {
-          itiValid = itiInstance.isValidNumber();
-        }
-      } catch (e) {
-        itiValid = null;
-      }
+        if (!itiInstance.isValidNumber()) return { valid: false, message: 'Please check your phone number and country code.' };
+        e164 = itiInstance.getNumber() || input;
+      } catch { /* Server performs authoritative validation if the component is unavailable. */ }
     }
-
-    const local8 = extractCyprusLocal8(candidateNumber) || extractCyprusLocal8(trimmed);
-    if (!local8) {
-      return {
-        valid: false,
-        message: 'Please enter an 8-digit Cyprus phone number (e.g. 99 123456).'
-      };
+    if (!e164.startsWith('+')) {
+      const local = e164.replace(/[\s().-]/g, '');
+      if (!/^\d{8}$/.test(local)) return { valid: false, message: 'Include the country code for numbers outside Cyprus.' };
+      e164 = '+357' + local;
     }
+    e164 = e164.replace(/[\s().-]/g, '');
+    if (!/^\+[1-9]\d{7,14}$/.test(e164)) return { valid: false, message: 'Please enter a valid phone number.' };
+    const national = e164.startsWith('+357') ? e164.slice(4) : e164.slice(1);
+    if (/^(\d)\1{6,}$/.test(national)) return { valid: false, message: 'Please double-check your phone number.' };
+    return { valid: true, e164, formatted: e164 };
+  }
 
-    if (!VALID_CYPRUS_FIRST_DIGITS.has(local8[0])) {
-      return {
-        valid: false,
-        message: 'Please enter a valid Cyprus mobile or landline number.'
-      };
-    }
-
-    if (isObviousJunkDigits(local8)) {
-      return {
-        valid: false,
-        message: 'That phone number looks invalid. Please double-check it.'
-      };
-    }
-
-    // Use libphonenumber validation when loaded, without over-rejecting valid local prefixes
-    if (itiValid === false) {
-      return {
-        valid: false,
-        message: 'Please enter a valid Cyprus phone number (e.g. 99 123456).'
-      };
-    }
-
-    return {
-      valid: true,
-      e164: '+357' + local8,
-      digitsWithCountry: '357' + local8,
-      formatted: '+357 ' + local8.slice(0, 2) + ' ' + local8.slice(2)
-    };
+  function getSubmissionId(phone) {
+    const storageKey = 'callback-request';
+    let saved = requestIds.get(phone);
+    try { const stored = JSON.parse(sessionStorage.getItem(storageKey) || 'null'); if (stored && stored.phone === phone) saved = stored; } catch { /* Session storage may be disabled. */ }
+    if (saved && Date.now() - saved.createdAt < 30 * 60 * 1000) return saved.id;
+    const id = window.crypto.randomUUID ? window.crypto.randomUUID() : ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c => (c ^ window.crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+    saved = { phone, id, createdAt: Date.now() };
+    requestIds.set(phone, saved);
+    try { sessionStorage.setItem(storageKey, JSON.stringify(saved)); } catch { /* In-memory retry protection remains active. */ }
+    return id;
   }
 
   // ---------- Cloudflare Turnstile Loader ----------
 
   async function loadPublicConfig() {
     try {
-      const res = await fetch('/api/config', { method: 'GET', credentials: 'same-origin' });
+      const res = await fetch('/api/config', { method: 'GET', credentials: 'same-origin', signal: AbortSignal.timeout(8000) });
       if (!res.ok) return;
       const cfg = await res.json();
       if (cfg && typeof cfg.turnstileSiteKey === 'string') {
@@ -184,6 +136,7 @@
       script.defer = true;
       script.onload = () => resolve(Boolean(window.turnstile));
       script.onerror = () => resolve(false);
+      setTimeout(() => resolve(Boolean(window.turnstile)), 8000);
       document.head.appendChild(script);
     });
 
@@ -201,7 +154,7 @@
       const userData = {
         fn: (result.firstName || nameParts.firstName || '').trim().toLowerCase(),
         ph: String(result.phoneDigits || '').replace(/\D/g, ''),
-        country: 'cy'
+        country: result.country || ''
       };
       const ln = (result.lastName || nameParts.lastName || '').trim().toLowerCase();
       if (ln) {
@@ -279,12 +232,12 @@
       try {
         iti = window.intlTelInput(phoneInput, {
           initialCountry: 'cy',
-          onlyCountries: ['cy'],
-          allowDropdown: false,
+          allowDropdown: true,
+          validationNumberTypes: ['MOBILE', 'FIXED_LINE', 'FIXED_LINE_OR_MOBILE', 'VOIP', 'PERSONAL_NUMBER'],
           separateDialCode: true,
           formatAsYouType: true,
           autoPlaceholder: 'aggressive',
-          countrySearch: false
+          countrySearch: true
         });
       } catch (err) {
         console.warn('intl-tel-input initialization failed, using fallback validation:', err);
@@ -366,7 +319,7 @@
       if (!phoneInput.value.trim() && !state.phoneTyped && !(phoneGroup && phoneGroup.classList.contains('has-error'))) {
         return;
       }
-      const res = validateCyprusPhone(phoneInput.value, iti);
+      const res = validatePhone(phoneInput.value, iti);
       setFieldError(phoneGroup, phoneInput, phoneError, res.valid ? '' : res.message);
     });
 
@@ -383,7 +336,7 @@
     phoneInput.addEventListener('input', function () {
       if (phoneInput.value.length > 0) state.phoneTyped = true;
       if (phoneGroup && phoneGroup.classList.contains('has-error')) {
-        if (validateCyprusPhone(phoneInput.value, iti).valid) {
+        if (validatePhone(phoneInput.value, iti).valid) {
           setFieldError(phoneGroup, phoneInput, phoneError, '');
         }
       }
@@ -424,7 +377,7 @@
       hideSubmissionError();
 
       const nameCheck = validateName(nameInput.value);
-      const phoneCheck = validateCyprusPhone(phoneInput.value, iti);
+      const phoneCheck = validatePhone(phoneInput.value, iti);
 
       setFieldError(nameGroup, nameInput, nameError, nameCheck.valid ? '' : nameCheck.message);
       setFieldError(phoneGroup, phoneInput, phoneError, phoneCheck.valid ? '' : phoneCheck.message);
@@ -446,6 +399,7 @@
         const attribution = getAttributionData();
 
         const payload = {
+          submissionId: getSubmissionId(phoneCheck.e164),
           fullName: nameCheck.cleaned,
           phone: phoneCheck.e164,
           website: honeypotInput ? honeypotInput.value : '',
@@ -461,7 +415,8 @@
         const response = await fetch('/api/lead', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(55000)
         });
 
         const data = await response.json().catch(() => ({}));
@@ -474,7 +429,7 @@
             return;
           }
           if (data && data.field === 'phone') {
-            setFieldError(phoneGroup, phoneInput, phoneError, data.error || 'Please enter a valid Cyprus phone number.');
+            setFieldError(phoneGroup, phoneInput, phoneError, data.error || 'Please check your phone number and country code.');
             phoneInput.focus();
             setLoading(false);
             return;
@@ -492,7 +447,7 @@
           showSubmissionError(
             (data && data.code === 'TURNSTILE_FAILED')
               ? 'Please complete the quick security check below and tap again — or call us directly.'
-              : 'We couldn’t send your request right now.'
+              : (data && data.error) || 'We couldn’t send your request right now.'
           );
           setLoading(false);
           return;
@@ -522,7 +477,7 @@
             // ignore
           }
         }
-        showSubmissionError('Connection issue — we couldn’t submit your request.');
+        showSubmissionError('We could not confirm your request. Your details may already be saved. Please retry or call us.');
         setLoading(false);
       }
     });
