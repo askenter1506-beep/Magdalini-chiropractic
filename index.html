@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magdalini Chiropractic - Fast Relief</title>
+    <meta name="description" content="Effective treatment for neck and back pain. Get better with a quick adjustment at Magdalini Chiropractic.">
+    <link rel="icon" type="image/svg+xml" href="https://magdalinichiropractic.cy/wp-content/themes/spinealign/assets/favicon.svg">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@25.3.1/build/css/intlTelInput.css">
+    <link rel="stylesheet" href="styles.css?v=3.0">
+    <style>
+        /* Critical Phone Modal Styles (ensures desktop popup appears centered even if external stylesheet is cached) */
+        .phone-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 0.25s ease, visibility 0.25s ease;
+        }
+        .phone-modal.is-active {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+        .phone-modal-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        .phone-modal-dialog {
+            position: relative;
+            background: #ffffff;
+            border-radius: 24px;
+            padding: 38px 32px 30px;
+            max-width: 440px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 25px 60px -15px rgba(0, 56, 93, 0.25), 0 0 1px 1px rgba(0, 56, 93, 0.08);
+            border: 1px solid rgba(0, 56, 93, 0.08);
+            transform: scale(0.92) translateY(12px);
+            transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 2;
+        }
+        .phone-modal.is-active .phone-modal-dialog {
+            transform: scale(1) translateY(0);
+        }
+    </style>
+    <!-- Meta Pixel Code -->
+    <script>
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', 1025014860112458);
+    fbq('track', 'PageView');
+    </script>
+    <noscript><img height="1" width="1" style="display:none"
+    src="https://www.facebook.com/tr?id=1025014860112458&ev=PageView&noscript=1"
+    /></noscript>
+    <!-- End Meta Pixel Code -->
+</head>
+<body class="theme-light-warm">
+
+    <!-- Header -->
+    <header class="header">
+        <div class="container header-content">
+            <a href="index.html" class="logo">
+                <img src="icon_v4.png" alt="Magdalini Icon" class="logo-icon">
+                <div class="logo-text-group">
+                    <span class="logo-text-string">Magdalini Chiropractic</span>
+                    <span class="logo-subtitle">Chiropractic Health and Dietetics Center</span>
+                </div>
+            </a>
+            <nav class="nav-links">
+                <a href="index.html" class="contact-link">Home</a>
+                <a href="https://magdalinichiropractic.cy/" class="contact-link main-site-link" target="_blank" rel="noopener noreferrer">Main Website</a>
+                <a href="contact.html" class="contact-link">Contact</a>
+                <a href="#callback-form-hero" class="btn" data-scroll-to-form="callback-form-hero">Request a call back</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container hero-grid">
+            <div class="hero-container">
+                <h1 class="serif">You don't have to live in constant pain</h1>
+                <p class="hero-subtitle">Take the first step towards lasting relief. Enter your details and our clinic will call you back to schedule your appointment.</p>
+            </div>
+
+            <div class="callback-form-card" id="callback-card-hero">
+                <div class="callback-form-header">
+                    <h2 class="callback-form-title">Book your appointment</h2>
+                    <p class="callback-form-subtitle">Leave your name and Cyprus number for a quick call back.</p>
+                </div>
+
+                <form id="callback-form-hero" class="callback-form" data-form-location="hero" novalidate>
+                    <!-- Invisible bot honeypot -->
+                    <div class="hp-field" aria-hidden="true">
+                        <label for="hero-website">Website</label>
+                        <input type="text" id="hero-website" name="website" tabindex="-1" autocomplete="off">
+                    </div>
+
+                    <div class="form-field">
+                        <label class="form-label" for="hero-full-name">Full name</label>
+                        <input
+                            type="text"
+                            id="hero-full-name"
+                            name="fullName"
+                            class="form-input"
+                            autocomplete="name"
+                            placeholder="e.g. Elena Nicolaou"
+                            required
+                        >
+                        <span class="field-error" role="alert" aria-live="polite" hidden></span>
+                    </div>
+
+                    <div class="form-field">
+                        <label class="form-label" for="hero-phone">Phone number (Cyprus)</label>
+                        <input
+                            type="tel"
+                            id="hero-phone"
+                            name="phone"
+                            class="form-input"
+                            inputmode="tel"
+                            autocomplete="tel"
+                            required
+                        >
+                        <span class="field-error" role="alert" aria-live="polite" hidden></span>
+                    </div>
+
+                    <div class="cf-turnstile-slot"></div>
+
+                    <div class="form-error-banner" role="alert" hidden>
+                        <p class="form-error-text">We couldn’t send your request right now.</p>
+                        <a href="tel:+35799373304" class="callback-fallback-call" data-no-track="true">
+                            <span class="material-symbols-outlined">call</span>
+                            <span>Tap to call us instead (+357 99 373304)</span>
+                        </a>
+                    </div>
+
+                    <button type="submit" class="callback-submit-btn">
+                        <span class="btn-spinner" aria-hidden="true"></span>
+                        <span class="btn-label">Request a call back</span>
+                    </button>
+
+                    <p class="callback-trust-note">
+                        <span class="material-symbols-outlined">schedule</span>
+                        <span>We’ll call you within 10 minutes from <strong>+357 99 373304</strong></span>
+                    </p>
+                </form>
+
+                <div class="callback-success" role="status" aria-live="polite" hidden>
+                    <div class="callback-success-icon">
+                        <span class="material-symbols-outlined">check_circle</span>
+                    </div>
+                    <h3>Callback requested!</h3>
+                    <p>Thank you, <strong data-confirm-name></strong>. Please keep your phone nearby — we’ll call you within 10 minutes from <strong>+357 99 373304</strong>.</p>
+                    <div class="callback-success-number" data-confirm-phone></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Social Proof Section -->
+    <section class="social-proof">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">Reviews</span>
+                <h2 class="serif">We deliver results.</h2>
+                <p>What customers have to say about us</p>
+            </div>
+            
+            <div class="testimonials">
+                <!-- Testimonial 1 -->
+                <div class="testimonial-card">
+                    <div class="stars">
+                        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                    </div>
+                    <p class="testimonial-text">"I highly recommend Magdalini to anyone looking for knowledgeable, compassionate, and effective care. Magdalini is very attentive, patient, persistent and not at all aggressive as chyropractor can sometimes be. You feel relaxed in her hands and in her calming and pleasant presence. Magdalini will make sure you leave her place aligned and relieved."</p>
+                    <p class="testimonial-author">- Nina Eliassides</p>
+                    <a href="https://maps.app.goo.gl/mSugcis28ZaygRxH6" class="review-link" target="_blank" rel="noopener noreferrer">View on Google Maps</a>
+                </div>
+                <!-- Testimonial 2 -->
+                <div class="testimonial-card">
+                    <div class="stars">
+                        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                    </div>
+                    <p class="testimonial-text">"Dr Stephanou is an amazing Chiropractor with so much experience and precision in her adjustments! I strongly recommend her to anyone that is in physical discomfort, especially people in high stress office jobs that want to claim their bodily balance back!"</p>
+                    <p class="testimonial-author">- Andreas Athinodorou</p>
+                    <a href="https://maps.app.goo.gl/MjWFs9FYAArfYV6M6" class="review-link" target="_blank" rel="noopener noreferrer">View on Google Maps</a>
+                </div>
+                <!-- Testimonial 3 -->
+                <div class="testimonial-card">
+                    <div class="stars">
+                        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">star</span>
+                    </div>
+                    <p class="testimonial-text">"I have had an excellent experience at Dr Magdalini's chiropractic center. From the moment I walked in I felt welcomed and comfortable. Magdalini listened carefully to me and thoroughly explained my treatment. I have felt a tremendous improvement with my posture and mobility. Highly recommended and very professional!"</p>
+                    <p class="testimonial-author">- Thekla Ioannou</p>
+                    <a href="https://maps.app.goo.gl/1DNPQb2w1enJ1usv9" class="review-link" target="_blank" rel="noopener noreferrer">View on Google Maps</a>
+                </div>
+            </div>
+
+            <div class="association">
+                <a href="https://cypruschiropractic.org/personnel/dr-magdalini-stefanou-d-c/" target="_blank" rel="noopener noreferrer">
+                    <img src="Cyprus Chiropractic assosiation.png" alt="Cyprus Chiropractors' Association Logo">
+                </a>
+                <p>Vice President of the Cyprus Chiropractors' Association</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Certainty Section -->
+    <section class="certainty">
+        <div class="container certainty-content">
+            <div class="certainty-text">
+                <span class="section-badge">Our Approach</span>
+                <h2 class="serif">Effective treatment for <span class="highlight-green">neck and back pain</span></h2>
+                <p>lasting results, get rid of constant pain.</p>
+            </div>
+            <div class="certainty-image">
+                <img src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=1000" alt="Chiropractic Adjustment">
+            </div>
+        </div>
+    </section>
+
+    <!-- Doctor Profile -->
+    <section class="doctor">
+        <div class="container">
+            <span class="section-badge mobile-only-title" style="margin-bottom: 4px;">Expert Care</span>
+            <h2 class="serif mobile-only-title">Meet the Doctor</h2>
+            <div class="doctor-wrapper">
+                <div class="doctor-image">
+                    <img src="doctor_magdalini.jpg" alt="Dr. Magdalini Stefanou">
+                </div>
+                <div class="doctor-info">
+                    <span class="section-badge desktop-only-title">Expert Care</span>
+                    <h2 class="serif desktop-only-title">Meet the Doctor</h2>
+                    <p>Welcome to Magdalini Chiropractic. I am dedicated to finding the root cause of your pain, rather than just offering temporary relief. My goal is to listen to your concerns, explain exactly what's wrong, and put you on a personalized plan so you can get your life back.</p>
+                    <p>I believe in providing lasting results in a safe, professional, and welcoming environment.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section" id="booking">
+        <div class="container">
+            <h2 class="serif">Don’t let pain ruin your life</h2>
+            <p>Leave your details and we’ll call you back to book your appointment.</p>
+
+            <div class="callback-form-card" id="callback-card-bottom">
+                <form id="callback-form-bottom" class="callback-form" data-form-location="bottom_cta" novalidate>
+                    <!-- Invisible bot honeypot -->
+                    <div class="hp-field" aria-hidden="true">
+                        <label for="bottom-website">Website</label>
+                        <input type="text" id="bottom-website" name="website" tabindex="-1" autocomplete="off">
+                    </div>
+
+                    <div class="form-field">
+                        <label class="form-label" for="bottom-full-name">Full name</label>
+                        <input
+                            type="text"
+                            id="bottom-full-name"
+                            name="fullName"
+                            class="form-input"
+                            autocomplete="name"
+                            placeholder="e.g. Elena Nicolaou"
+                            required
+                        >
+                        <span class="field-error" role="alert" aria-live="polite" hidden></span>
+                    </div>
+
+                    <div class="form-field">
+                        <label class="form-label" for="bottom-phone">Phone number (Cyprus)</label>
+                        <input
+                            type="tel"
+                            id="bottom-phone"
+                            name="phone"
+                            class="form-input"
+                            inputmode="tel"
+                            autocomplete="tel"
+                            required
+                        >
+                        <span class="field-error" role="alert" aria-live="polite" hidden></span>
+                    </div>
+
+                    <div class="cf-turnstile-slot"></div>
+
+                    <div class="form-error-banner" role="alert" hidden>
+                        <p class="form-error-text">We couldn’t send your request right now.</p>
+                        <a href="tel:+35799373304" class="callback-fallback-call" data-no-track="true">
+                            <span class="material-symbols-outlined">call</span>
+                            <span>Tap to call us instead (+357 99 373304)</span>
+                        </a>
+                    </div>
+
+                    <button type="submit" class="callback-submit-btn">
+                        <span class="btn-spinner" aria-hidden="true"></span>
+                        <span class="btn-label">Request a call back</span>
+                    </button>
+
+                    <p class="callback-trust-note">
+                        <span class="material-symbols-outlined">schedule</span>
+                        <span>We’ll call you within 10 minutes from <strong>+357 99 373304</strong></span>
+                    </p>
+                </form>
+
+                <div class="callback-success" role="status" aria-live="polite" hidden>
+                    <div class="callback-success-icon">
+                        <span class="material-symbols-outlined">check_circle</span>
+                    </div>
+                    <h3>Callback requested!</h3>
+                    <p>Thank you, <strong data-confirm-name></strong>. Please keep your phone nearby — we’ll call you within 10 minutes from <strong>+357 99 373304</strong>.</p>
+                    <div class="callback-success-number" data-confirm-phone></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <h3 class="serif" style="color: var(--heading-color); font-size: 1.5rem; margin-bottom: 8px;">Magdalini Chiropractic</h3>
+                    <p>Premium chiropractic care focused on long-term wellness and neurological health.</p>
+                </div>
+                <div class="footer-col">
+                    <h4>Quick Links</h4>
+                    <a href="index.html">Home</a>
+                    <a href="https://magdalinichiropractic.cy/" class="main-site-link" target="_blank" rel="noopener noreferrer">Main Website</a>
+                    <a href="contact.html">Contact</a>
+                </div>
+                <div class="footer-col">
+                    <h4>Contact</h4>
+                    <p>1 Ekaterinis Kornarou Str, Aglantzia<br>2108 Nicosia, Cyprus</p>
+                    <p>info@magdalinichiropractic.cy<br><a href="tel:+35799373304">+357 99 373304</a></p>
+                </div>
+                <div class="footer-col">
+                    <h4>Legal</h4>
+                    <a href="https://magdalinichiropractic.cy/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+                    <a href="https://magdalinichiropractic.cy/terms-conditions" target="_blank" rel="noopener noreferrer">Terms of Service</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <div>&copy; 2026 Magdalini Chiropractic. All Rights Reserved.</div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Mobile Sticky Scroll-to-Form Bar -->
+    <div class="mobile-sticky-cta">
+        <a href="#callback-form-hero" class="btn" data-scroll-to-form="callback-form-hero">Request a call back</a>
+    </div>
+
+    <!-- Phone Number Modal (Desktop / PC) -->
+    <div id="phone-modal" class="phone-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="phone-modal-title">
+        <div class="phone-modal-overlay" id="phone-modal-overlay"></div>
+        <div class="phone-modal-dialog">
+            <button type="button" class="phone-modal-close" id="phone-modal-close" aria-label="Close dialog">&times;</button>
+            <div class="phone-modal-icon">
+                <span class="material-symbols-outlined">call</span>
+            </div>
+            <h3 id="phone-modal-title" class="phone-modal-title">Call Magdalini Chiropractic</h3>
+            <p class="phone-modal-desc">Dial directly from your phone to schedule your appointment:</p>
+            <div class="phone-modal-number-box">
+                <div class="phone-modal-number">+357 99 373304</div>
+                <div class="phone-modal-subtext">Direct Line: 99 373304</div>
+            </div>
+            <div class="phone-modal-actions">
+                <button type="button" class="phone-modal-copy-btn" id="phone-modal-copy-btn">
+                    <span class="material-symbols-outlined" style="font-size: 1.15rem;">content_copy</span>
+                    <span id="phone-modal-copy-text">Copy Number</span>
+                </button>
+                <button type="button" class="phone-modal-close-btn" id="phone-modal-close-btn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@25.3.1/build/js/intlTelInputWithUtils.min.js" defer></script>
+    <script src="callback-form.js?v=1.0" defer></script>
+</body>
+</html>
