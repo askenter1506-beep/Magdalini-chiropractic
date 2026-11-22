@@ -1559,3 +1559,6 @@ a {
 }
 
 
+
+/* A successful request replaces the form with its confirmation. */
+.callback-form[hidden] { display: none !important; }

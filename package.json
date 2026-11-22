@@ -1,0 +1,14 @@
+{
+  "name": "stefanou-chiropractic",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.cjs"
+  },
+  "dependencies": {
+    "libphonenumber-js": "1.13.17"
+  }
+}
