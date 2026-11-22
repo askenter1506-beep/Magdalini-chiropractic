@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us - Magdalini Chiropractic</title>
+    <link rel="icon" type="image/svg+xml" href="https://magdalinichiropractic.cy/wp-content/themes/spinealign/assets/favicon.svg">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@25.3.1/build/css/intlTelInput.css">
+    <link rel="stylesheet" href="styles.css?v=3.0">
+    <style>
+        /* Critical Phone Modal Styles (ensures desktop popup appears centered even if external stylesheet is cached) */
+        .phone-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 0.25s ease, visibility 0.25s ease;
+        }
+        .phone-modal.is-active {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+        .phone-modal-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        .phone-modal-dialog {
+            position: relative;
+            background: #ffffff;
+            border-radius: 24px;
+            padding: 38px 32px 30px;
+            max-width: 440px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 25px 60px -15px rgba(0, 56, 93, 0.25), 0 0 1px 1px rgba(0, 56, 93, 0.08);
+            border: 1px solid rgba(0, 56, 93, 0.08);
+            transform: scale(0.92) translateY(12px);
+            transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 2;
+        }
+        .phone-modal.is-active .phone-modal-dialog {
+            transform: scale(1) translateY(0);
+        }
+    </style>
+    <style>
+        .contact-page {
+            padding: 64px 0 80px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+        .contact-card {
+            background: var(--card-bg);
+            padding: 44px 40px;
+            border-radius: 24px;
+            box-shadow: 0 20px 50px -10px rgba(0, 56, 93, 0.1), 0 0 1px 1px rgba(0, 56, 93, 0.05);
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: center;
+            border: 1px solid rgba(0, 56, 93, 0.08);
+            border-top: 4px solid var(--card-border);
+        }
+        .contact-card h1 {
+            margin-bottom: 12px;
+            color: var(--heading-color);
+            font-size: 2.3rem;
+            line-height: 1.15;
+        }
+        .contact-info {
+            margin: 28px 0 0;
+            font-size: 1.05rem;
+            line-height: 1.75;
+            color: var(--text-main);
+        }
+        .contact-info a {
+            color: var(--heading-color);
+            text-decoration: none;
+            font-weight: 700;
+            transition: color 0.25s ease;
+        }
+        .contact-info a:hover {
+            color: var(--secondary-color);
+            text-decoration: underline;
+        }
+        .contact-icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+            display: block;
+        }
+        .contact-detail {
+            margin-bottom: 16px;
+            background: rgba(0, 56, 93, 0.02);
+            padding: 18px;
+            border-radius: 16px;
+            border: 1px solid rgba(0, 56, 93, 0.05);
+        }
+        .contact-detail:last-child {
+            margin-bottom: 0;
+        }
+        @media (max-width: 768px) {
+            .contact-page {
+                padding: 24px 0 48px;
+                align-items: flex-start;
+            }
+            .contact-card {
+                padding: 24px 18px;
+                border-radius: 20px;
+            }
+            .contact-card h1 {
+                font-size: 1.85rem;
+            }
+        }
+    </style>
+    <!-- Meta Pixel Code -->
+    <script>
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', 1025014860112458);
+    fbq('track', 'PageView');
+    </script>
+    <noscript><img height="1" width="1" style="display:none"
+    src="https://www.facebook.com/tr?id=1025014860112458&ev=PageView&noscript=1"
+    /></noscript>
+    <!-- End Meta Pixel Code -->
+</head>
+<body class="theme-light-warm">
+
+    <!-- Header -->
+    <header class="header">
+        <div class="container header-content">
+            <a href="index.html" class="logo">
+                <img src="icon_v4.png" alt="Magdalini Icon" class="logo-icon">
+                <div class="logo-text-group">
+                    <span class="logo-text-string">Magdalini Chiropractic</span>
+                    <span class="logo-subtitle">Chiropractic Health and Dietetics Center</span>
+                </div>
+            </a>
+            <nav class="nav-links">
+                <a href="index.html" class="contact-link">Home</a>
+                <a href="https://magdalinichiropractic.cy/" class="contact-link main-site-link" target="_blank" rel="noopener noreferrer">Main Website</a>
+                <a href="contact.html" class="contact-link">Contact</a>
+                <a href="#callback-form-contact" class="btn" data-scroll-to-form="callback-form-contact">Request a call back</a>
+            </nav>
+        </div>
+    </header>
+
+    <section class="contact-page">
+        <div class="container">
+            <div class="contact-card">
+                <span class="section-badge">Get In Touch</span>
+                <h1 class="serif">Request a Callback</h1>
+                <p>Leave your name and Cyprus number and we’ll call you back to schedule your adjustment.</p>
+
+                <div class="callback-form-card" id="callback-card-contact">
+                    <form id="callback-form-contact" class="callback-form" data-form-location="contact_page" novalidate>
+                        <!-- Invisible bot honeypot -->
+                        <div class="hp-field" aria-hidden="true">
+                            <label for="contact-website">Website</label>
+                            <input type="text" id="contact-website" name="website" tabindex="-1" autocomplete="off">
+                        </div>
+
+                        <div class="form-field">
+                            <label class="form-label" for="contact-full-name">Full name</label>
+                            <input
+                                type="text"
+                                id="contact-full-name"
+                                name="fullName"
+                                class="form-input"
+                                autocomplete="name"
+                                placeholder="e.g. Elena Nicolaou"
+                                required
+                            >
+                            <span class="field-error" role="alert" aria-live="polite" hidden></span>
+                        </div>
+
+                        <div class="form-field">
+                            <label class="form-label" for="contact-phone">Phone number (Cyprus)</label>
+                            <input
+                                type="tel"
+                                id="contact-phone"
+                                name="phone"
+                                class="form-input"
+                                inputmode="tel"
+                                autocomplete="tel"
+                                required
+                            >
+                            <span class="field-error" role="alert" aria-live="polite" hidden></span>
+                        </div>
+
+                        <div class="cf-turnstile-slot"></div>
+
+                        <div class="form-error-banner" role="alert" hidden>
+                            <p class="form-error-text">We couldn’t send your request right now.</p>
+                            <a href="tel:+35799373304" class="callback-fallback-call" data-no-track="true">
+                                <span class="material-symbols-outlined">call</span>
+                                <span>Tap to call us instead (+357 99 373304)</span>
+                            </a>
+                        </div>
+
+                        <button type="submit" class="callback-submit-btn">
+                            <span class="btn-spinner" aria-hidden="true"></span>
+                            <span class="btn-label">Request a call back</span>
+                        </button>
+
+                        <p class="callback-trust-note">
+                            <span class="material-symbols-outlined">schedule</span>
+                            <span>We’ll call you within 10 minutes from <strong>+357 99 373304</strong></span>
+                        </p>
+                    </form>
+
+                    <div class="callback-success" role="status" aria-live="polite" hidden>
+                        <div class="callback-success-icon">
+                            <span class="material-symbols-outlined">check_circle</span>
+                        </div>
+                        <h3>Callback requested!</h3>
+                        <p>Thank you, <strong data-confirm-name></strong>. Please keep your phone nearby — we’ll call you within 10 minutes from <strong>+357 99 373304</strong>.</p>
+                        <div class="callback-success-number" data-confirm-phone></div>
+                    </div>
+                </div>
+                
+                <div class="contact-info">
+                    <div class="contact-detail">
+                        <span class="contact-icon"><span class="material-symbols-outlined" style="color: var(--secondary-color); font-size: 2rem;">call</span></span>
+                        <strong>Direct Phone Number:</strong><br>
+                        <a href="tel:+35799373304">+357 99 373304</a>
+                    </div>
+                    
+                    <div class="contact-detail">
+                        <span class="contact-icon"><span class="material-symbols-outlined" style="color: var(--secondary-color); font-size: 2rem;">location_on</span></span>
+                        <strong>Clinic Location:</strong><br>
+                        <a href="https://maps.app.goo.gl/WtkaMqijUrewTLCUA" target="_blank" rel="noopener noreferrer">
+                            Aglantzias 7, Nicosia 2108, Cyprus
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <h3 class="serif" style="color: var(--heading-color); font-size: 1.5rem; margin-bottom: 8px;">Magdalini Chiropractic</h3>
+                    <p>Premium chiropractic care focused on long-term wellness and neurological health.</p>
+                </div>
+                <div class="footer-col">
+                    <h4>Quick Links</h4>
+                    <a href="index.html">Home</a>
+                    <a href="https://magdalinichiropractic.cy/" class="main-site-link" target="_blank" rel="noopener noreferrer">Main Website</a>
+                    <a href="contact.html">Contact</a>
+                </div>
+                <div class="footer-col">
+                    <h4>Contact</h4>
+                    <p>1 Ekaterinis Kornarou Str, Aglantzia<br>2108 Nicosia, Cyprus</p>
+                    <p>info@magdalinichiropractic.cy<br><a href="tel:+35799373304">+357 99 373304</a></p>
+                </div>
+                <div class="footer-col">
+                    <h4>Legal</h4>
+                    <a href="https://magdalinichiropractic.cy/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+                    <a href="https://magdalinichiropractic.cy/terms-conditions" target="_blank" rel="noopener noreferrer">Terms of Service</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <div>&copy; 2026 Magdalini Chiropractic. All Rights Reserved.</div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Mobile Sticky Scroll-to-Form Bar -->
+    <div class="mobile-sticky-cta">
+        <a href="#callback-form-contact" class="btn" data-scroll-to-form="callback-form-contact">Request a call back</a>
+    </div>
+
+    <!-- Phone Number Modal (Desktop / PC) -->
+    <div id="phone-modal" class="phone-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="phone-modal-title">
+        <div class="phone-modal-overlay" id="phone-modal-overlay"></div>
+        <div class="phone-modal-dialog">
+            <button type="button" class="phone-modal-close" id="phone-modal-close" aria-label="Close dialog">&times;</button>
+            <div class="phone-modal-icon">
+                <span class="material-symbols-outlined">call</span>
+            </div>
+            <h3 id="phone-modal-title" class="phone-modal-title">Call Magdalini Chiropractic</h3>
+            <p class="phone-modal-desc">Dial directly from your phone to schedule your appointment:</p>
+            <div class="phone-modal-number-box">
+                <div class="phone-modal-number">+357 99 373304</div>
+                <div class="phone-modal-subtext">Direct Line: 99 373304</div>
+            </div>
+            <div class="phone-modal-actions">
+                <button type="button" class="phone-modal-copy-btn" id="phone-modal-copy-btn">
+                    <span class="material-symbols-outlined" style="font-size: 1.15rem;">content_copy</span>
+                    <span id="phone-modal-copy-text">Copy Number</span>
+                </button>
+                <button type="button" class="phone-modal-close-btn" id="phone-modal-close-btn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@25.3.1/build/js/intlTelInputWithUtils.min.js" defer></script>
+    <script src="callback-form.js?v=1.0" defer></script>
+</body>
+</html>
