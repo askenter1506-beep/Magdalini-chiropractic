@@ -1,7 +1,6 @@
 (function () {
   'use strict';
 
-  const META_PIXEL_ID = '1025014860112458';
   const CLINIC_PHONE_HREF = '+35799373304';
   const CLINIC_PHONE_DISPLAY = '+357 99 373304';
   const VALID_CYPRUS_FIRST_DIGITS = new Set(['2', '7', '8', '9']);
@@ -12,29 +11,31 @@
 
   // ---------- Helpers ----------
 
-  function getCookie(name) {
-    const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1') + '=([^;]*)'));
-    return match ? decodeURIComponent(match[1]) : '';
+  const campaignFields = [
+    'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term',
+    'utm_id', 'campaign_id', 'adset_id', 'ad_id'
+  ];
+
+  function initAttribution(form) {
+    const preference = form.querySelector('[data-attribution-preference]');
+    if (!preference) return;
+
+    const params = new URLSearchParams(window.location.search);
+    for (const name of campaignFields) {
+      const input = form.elements.namedItem(name);
+      const value = (params.get(name) || '').trim();
+      if (!input || !value || value.length > 120) continue;
+      input.value = value;
+      preference.hidden = false;
+    }
   }
 
-  function getAttributionData() {
-    const params = new URLSearchParams(window.location.search);
-    const utm = {
-      utm_source: params.get('utm_source') || '',
-      utm_medium: params.get('utm_medium') || '',
-      utm_campaign: params.get('utm_campaign') || '',
-      utm_content: params.get('utm_content') || '',
-      utm_term: params.get('utm_term') || ''
+  function getAttributionData(form) {
+    if (!form.elements.namedItem('attributionConsent')?.checked) return {};
+    return {
+      attributionConsent: true,
+      utm: Object.fromEntries(campaignFields.map((name) => [name, form.elements.namedItem(name)?.value || '']))
     };
-
-    const fbp = getCookie('_fbp');
-    let fbc = getCookie('_fbc');
-    const fbclid = params.get('fbclid');
-    if (!fbc && fbclid) {
-      fbc = 'fb.1.' + Math.floor(Date.now() / 1000) + '.' + fbclid;
-    }
-
-    return { utm, fbp, fbc };
   }
 
   function splitFullName(raw) {
@@ -188,43 +189,6 @@
     });
 
     return turnstileScriptPromise;
-  }
-
-  // ---------- Meta Pixel Lead Event (Advanced Matching + Deduplication) ----------
-
-  function fireMetaLeadEvent(result, fullNameRaw, formLocation) {
-    if (typeof window.fbq !== 'function') return;
-    if (!result || result.trackLead === false || !result.eventId) return;
-
-    try {
-      const nameParts = splitFullName(fullNameRaw);
-      const userData = {
-        fn: (result.firstName || nameParts.firstName || '').trim().toLowerCase(),
-        ph: String(result.phoneDigits || '').replace(/\D/g, ''),
-        country: 'cy'
-      };
-      const ln = (result.lastName || nameParts.lastName || '').trim().toLowerCase();
-      if (ln) {
-        userData.ln = ln;
-      }
-
-      // Pass normalized Advanced Matching fields to Meta Pixel before firing Lead
-      window.fbq('init', META_PIXEL_ID, userData);
-      window.fbq(
-        'track',
-        'Lead',
-        {
-          content_name: 'Callback Request',
-          lead_type: 'phone_callback',
-          form_location: formLocation || 'hero'
-        },
-        {
-          eventID: result.eventId
-        }
-      );
-    } catch (err) {
-      console.warn('Meta Pixel Lead tracking error:', err);
-    }
   }
 
   // ---------- Field Error UI ----------
@@ -443,7 +407,6 @@
 
       try {
         const token = await waitForTurnstileToken(4000);
-        const attribution = getAttributionData();
 
         const payload = {
           fullName: nameCheck.cleaned,
@@ -452,10 +415,8 @@
           elapsedMs: Date.now() - pageLoadedAt,
           turnstileToken: token,
           formLocation: formLocation,
-          pageUrl: window.location.href,
-          utm: attribution.utm,
-          fbp: attribution.fbp,
-          fbc: attribution.fbc
+          pageUrl: window.location.origin + window.location.pathname,
+          ...getAttributionData(form)
         };
 
         const response = await fetch('/api/lead', {
@@ -497,9 +458,6 @@
           setLoading(false);
           return;
         }
-
-        // Verified success: fire Meta Pixel Lead with eventID deduplication (skipped if honeypot trap returned trackLead:false)
-        fireMetaLeadEvent(data, nameCheck.cleaned, formLocation);
 
         // Show clear confirmation state
         if (successPanel) {
@@ -637,7 +595,6 @@
       });
     }
 
-    // Notice: we intentionally do NOT fire any Meta Pixel events on tel: clicks (especially fallback call links)
     const phoneLinks = document.querySelectorAll('a[href^="tel:"]');
     phoneLinks.forEach((link) => {
       link.addEventListener('click', (e) => {
@@ -648,20 +605,6 @@
       });
     });
 
-    const mainSiteLinks = document.querySelectorAll('.main-site-link');
-    mainSiteLinks.forEach((link) => {
-      link.addEventListener('click', () => {
-        try {
-          if (typeof window.fbq === 'function') {
-            window.fbq('trackCustom', 'ViewMainSite', {
-              destination: 'main_website'
-            });
-          }
-        } catch {
-          // ignore
-        }
-      });
-    });
   }
 
   // ---------- Bootstrap ----------
@@ -672,7 +615,10 @@
 
     const turnstileReadyPromise = loadPublicConfig().then(() => ensureTurnstileScript());
     const forms = document.querySelectorAll('.callback-form');
-    forms.forEach((form) => initCallbackForm(form, turnstileReadyPromise));
+    forms.forEach((form) => {
+      initAttribution(form);
+      initCallbackForm(form, turnstileReadyPromise);
+    });
   }
 
   if (document.readyState === 'loading') {

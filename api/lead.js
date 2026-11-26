@@ -1,15 +1,7 @@
 const crypto = require('crypto');
 
-const DEFAULT_META_PIXEL_ID = '1025014860112458';
 const VALID_CYPRUS_FIRST_DIGITS = new Set(['2', '7', '8', '9']);
 const MIN_HUMAN_SUBMIT_MS = 700;
-
-function sha256Normalized(value) {
-  if (!value) return undefined;
-  const normalized = String(value).trim().toLowerCase();
-  if (!normalized) return undefined;
-  return crypto.createHash('sha256').update(normalized).digest('hex');
-}
 
 function getClientIp(req) {
   const forwarded = req.headers['x-forwarded-for'];
@@ -139,7 +131,7 @@ function validateCyprusPhone(rawPhone) {
 async function verifyTurnstile(token, remoteIp) {
   const secretKey = (process.env.TURNSTILE_SECRET_KEY || '').trim();
   if (!secretKey) {
-    return { verified: true, skipped: true };
+    throw new Error('Turnstile secret is missing');
   }
   if (!token) {
     return { verified: false, reason: 'missing-token' };
@@ -187,6 +179,9 @@ async function saveToGoogleSheet(lead) {
     utmCampaign: lead.utm.campaign,
     utmContent: lead.utm.content,
     utmTerm: lead.utm.term,
+    campaignId: lead.utm.campaignId,
+    adsetId: lead.utm.adsetId,
+    adId: lead.utm.adId,
     eventId: lead.eventId,
     status: 'New'
   };
@@ -199,24 +194,16 @@ async function saveToGoogleSheet(lead) {
     signal: AbortSignal.timeout(10000)
   });
 
-  const text = await response.text().catch(() => '');
   if (!response.ok) {
-    throw new Error(`Google Sheet webhook failed (${response.status}): ${text.slice(0, 200)}`);
+    throw new Error(`Google Sheet webhook failed (${response.status})`);
   }
 
-  try {
-    const parsed = JSON.parse(text);
-    if (parsed && parsed.ok === false) {
-      throw new Error(`Google Sheet webhook rejected payload: ${parsed.error || 'unknown error'}`);
-    }
-  } catch (err) {
-    if (err instanceof Error && err.message.startsWith('Google Sheet webhook rejected')) {
-      throw err;
-    }
-    // Non-JSON 200 responses are tolerated unless explicitly { ok: false }
+  const acknowledgement = await response.json().catch(() => null);
+  if (acknowledgement?.ok !== true || acknowledgement?.saved === false) {
+    throw new Error('Google Sheet webhook rejected the submission');
   }
-
-  return { configured: true, ok: true };
+  const saved = acknowledgement?.ok === true && acknowledgement?.saved === true;
+  return { configured: true, ok: true, saved };
 }
 
 async function sendResendEmail(lead) {
@@ -301,8 +288,7 @@ async function sendResendEmail(lead) {
   });
 
   if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(`Resend failed (${response.status}): ${text.slice(0, 200)}`);
+    throw new Error(`Resend failed (${response.status})`);
   }
 
   return { configured: true, ok: true };
@@ -352,8 +338,7 @@ async function sendTwilioSms(lead) {
       );
 
       if (!response.ok) {
-        const text = await response.text().catch(() => '');
-        throw new Error(`Twilio SMS to ${to} failed (${response.status}): ${text.slice(0, 200)}`);
+        throw new Error(`Twilio SMS failed (${response.status})`);
       }
       return true;
     })
@@ -362,69 +347,43 @@ async function sendTwilioSms(lead) {
   return { configured: true, ok: results.every(Boolean) };
 }
 
-async function sendMetaCapiLead(lead) {
-  const accessToken = (process.env.META_CAPI_ACCESS_TOKEN || '').trim();
-  const pixelId = (process.env.META_PIXEL_ID || DEFAULT_META_PIXEL_ID).trim();
-  if (!accessToken || !pixelId) return { configured: false };
+function cleanCampaignTag(value) {
+  if (typeof value !== 'string') return '';
+  const tag = value.trim();
+  return tag.length <= 120 && /^[\p{L}\p{N}][\p{L}\p{N}\p{M} _.-]*$/u.test(tag) ? tag : '';
+}
 
-  const userData = {
-    ph: [sha256Normalized(lead.phone.digitsWithCountry)],
-    fn: [sha256Normalized(lead.firstName)],
-    country: [sha256Normalized('cy')]
+function cleanCampaignId(value) {
+  return typeof value === 'string' && /^\d{1,30}$/.test(value) ? value : '';
+}
+
+function readAttribution(body) {
+  const utm = body.attributionConsent === true && body.utm ? body.utm : {};
+  const campaignId = cleanCampaignId(utm.campaign_id || utm.utm_id);
+  const adsetId = cleanCampaignId(utm.adset_id);
+  const adId = cleanCampaignId(utm.ad_id);
+  return {
+    source: cleanCampaignTag(utm.utm_source),
+    medium: cleanCampaignTag(utm.utm_medium),
+    campaign: cleanCampaignTag(utm.utm_campaign) || campaignId,
+    content: cleanCampaignTag(utm.utm_content) || adId,
+    term: cleanCampaignTag(utm.utm_term) || adsetId,
+    campaignId,
+    adsetId,
+    adId
   };
-  if (lead.lastName) {
-    userData.ln = [sha256Normalized(lead.lastName)];
-  }
-  if (lead.clientIp) {
-    userData.client_ip_address = lead.clientIp;
-  }
-  if (lead.userAgent) {
-    userData.client_user_agent = lead.userAgent;
-  }
-  if (lead.fbp) {
-    userData.fbp = lead.fbp;
-  }
-  if (lead.fbc) {
-    userData.fbc = lead.fbc;
-  }
+}
 
-  const eventPayload = {
-    data: [
-      {
-        event_name: 'Lead',
-        event_time: Math.floor(Date.now() / 1000),
-        event_id: lead.eventId,
-        action_source: 'website',
-        event_source_url: lead.pageUrl || 'https://magdalinichiropractic.cy/',
-        user_data: userData,
-        custom_data: {
-          content_name: 'Callback Request',
-          lead_type: 'phone_callback',
-          form_location: lead.formLocation || 'hero'
-        }
-      }
-    ]
-  };
-
-  const testEventCode = (process.env.META_TEST_EVENT_CODE || '').trim();
-  if (testEventCode) {
-    eventPayload.test_event_code = testEventCode;
+function getPageWithoutTrackingParameters(value) {
+  try {
+    const page = new URL(value);
+    if (page.protocol === 'https:' || page.protocol === 'http:') {
+      return page.origin + page.pathname;
+    }
+  } catch {
+    // The form location remains available when no URL was supplied.
   }
-
-  const url = `https://graph.facebook.com/v21.0/${encodeURIComponent(pixelId)}/events?access_token=${encodeURIComponent(accessToken)}`;
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(eventPayload),
-    signal: AbortSignal.timeout(10000)
-  });
-
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(`Meta CAPI failed (${response.status}): ${text.slice(0, 200)}`);
-  }
-
-  return { configured: true, ok: true };
+  return '';
 }
 
 module.exports = async function handler(req, res) {
@@ -435,12 +394,11 @@ module.exports = async function handler(req, res) {
 
   const body = parseBody(req);
 
-  // 1. Invisible honeypot & timing bot trap:
-  // Return fake 200 with trackLead:false so bots stop retrying, while NEVER firing Lead events or notifying clinic.
+  // Reject spam before writing a lead or notifying the clinic.
   const honeypot = String(body.website || '').trim();
   const elapsedMs = Number(body.elapsedMs);
   if (honeypot.length > 0 || (Number.isFinite(elapsedMs) && elapsedMs >= 0 && elapsedMs < MIN_HUMAN_SUBMIT_MS)) {
-    return res.status(200).json({ ok: true, trackLead: false });
+    return res.status(400).json({ ok: false, error: 'We could not verify your request.' });
   }
 
   // 2. Validate Full Name and Cyprus Phone before touching external APIs
@@ -498,7 +456,6 @@ module.exports = async function handler(req, res) {
   }).format(now);
 
   const eventId = `lead_${crypto.randomUUID()}`;
-  const utm = body.utm && typeof body.utm === 'object' ? body.utm : {};
 
   const lead = {
     eventId,
@@ -508,19 +465,9 @@ module.exports = async function handler(req, res) {
     firstName: nameParts.firstName,
     lastName: nameParts.lastName,
     phone: phoneCheck,
-    pageUrl: String(body.pageUrl || '').slice(0, 500),
+    pageUrl: getPageWithoutTrackingParameters(body.pageUrl),
     formLocation: String(body.formLocation || 'hero').slice(0, 60),
-    fbp: String(body.fbp || '').slice(0, 200),
-    fbc: String(body.fbc || '').slice(0, 200),
-    clientIp,
-    userAgent: String(req.headers['user-agent'] || '').slice(0, 400),
-    utm: {
-      source: String(utm.utm_source || '').slice(0, 120),
-      medium: String(utm.utm_medium || '').slice(0, 120),
-      campaign: String(utm.utm_campaign || '').slice(0, 120),
-      content: String(utm.utm_content || '').slice(0, 120),
-      term: String(utm.utm_term || '').slice(0, 120)
-    }
+    utm: readAttribution(body)
   };
 
   // 5. Save lead & trigger notifications in parallel
@@ -537,8 +484,7 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // Ensure at least one durable lead sink (Google Sheet, Email, or SMS) actually succeeded.
-  // Never silently lose a lead, and never fire Meta Lead events if capture failed!
+  // Keep callback delivery available through the existing clinic channels.
   const leadSinks = [sheetRes, emailRes, smsRes];
   const anySinkConfigured = leadSinks.some(
     (r) => r.status === 'rejected' || (r.status === 'fulfilled' && r.value && r.value.configured)
@@ -548,33 +494,17 @@ module.exports = async function handler(req, res) {
   );
 
   if (!anySinkSucceeded) {
-    console.error('[lead] CRITICAL: Lead delivery failed across all sinks. Backup log:', {
-      eventId,
-      fullName: lead.fullName,
-      phone: lead.phone.e164,
-      timestampCyprus,
-      anySinkConfigured
-    });
+    console.error('[lead] Callback delivery failed', { eventId, anySinkConfigured });
     return res.status(502).json({
       ok: false,
       error: 'We could not deliver your request right now. Please call us directly instead.'
     });
   }
 
-  // 6. Fire server-side Meta CAPI Lead event only after confirmed capture (deduped via eventId)
-  try {
-    await sendMetaCapiLead(lead);
-  } catch (err) {
-    console.error(`[lead] capi failed for ${eventId}:`, err);
-  }
-
   return res.status(200).json({
     ok: true,
-    trackLead: true,
+    saved: sheetRes.status === 'fulfilled' && sheetRes.value.saved === true,
     eventId,
-    firstName: lead.firstName,
-    lastName: lead.lastName,
-    phoneFormatted: lead.phone.formatted,
-    phoneDigits: lead.phone.digitsWithCountry
+    phoneFormatted: lead.phone.formatted
   });
 };

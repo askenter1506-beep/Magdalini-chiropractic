@@ -54,23 +54,6 @@
             transform: scale(1) translateY(0);
         }
     </style>
-    <!-- Meta Pixel Code -->
-    <script>
-    !function(f,b,e,v,n,t,s)
-    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-    n.queue=[];t=b.createElement(e);t.async=!0;
-    t.src=v;s=b.getElementsByTagName(e)[0];
-    s.parentNode.insertBefore(t,s)}(window, document,'script',
-    'https://connect.facebook.net/en_US/fbevents.js');
-    fbq('init', 1025014860112458);
-    fbq('track', 'PageView');
-    </script>
-    <noscript><img height="1" width="1" style="display:none"
-    src="https://www.facebook.com/tr?id=1025014860112458&ev=PageView&noscript=1"
-    /></noscript>
-    <!-- End Meta Pixel Code -->
 </head>
 <body class="theme-light-warm">
 
@@ -151,6 +134,20 @@
                             <span>Tap to call us instead (+357 99 373304)</span>
                         </a>
                     </div>
+
+                    <input type="hidden" name="utm_source">
+                    <input type="hidden" name="utm_medium">
+                    <input type="hidden" name="utm_campaign">
+                    <input type="hidden" name="utm_content">
+                    <input type="hidden" name="utm_term">
+                    <input type="hidden" name="utm_id">
+                    <input type="hidden" name="campaign_id">
+                    <input type="hidden" name="adset_id">
+                    <input type="hidden" name="ad_id">
+                    <label data-attribution-preference hidden>
+                        <input type="checkbox" name="attributionConsent">
+                        Allow the clinic to record which campaign brought me here.
+                    </label>
 
                     <button type="submit" class="callback-submit-btn">
                         <span class="btn-spinner" aria-hidden="true"></span>
@@ -320,6 +317,20 @@
                         </a>
                     </div>
 
+                    <input type="hidden" name="utm_source">
+                    <input type="hidden" name="utm_medium">
+                    <input type="hidden" name="utm_campaign">
+                    <input type="hidden" name="utm_content">
+                    <input type="hidden" name="utm_term">
+                    <input type="hidden" name="utm_id">
+                    <input type="hidden" name="campaign_id">
+                    <input type="hidden" name="adset_id">
+                    <input type="hidden" name="ad_id">
+                    <label data-attribution-preference hidden>
+                        <input type="checkbox" name="attributionConsent">
+                        Allow the clinic to record which campaign brought me here.
+                    </label>
+
                     <button type="submit" class="callback-submit-btn">
                         <span class="btn-spinner" aria-hidden="true"></span>
                         <span class="btn-label">Request a call back</span>
@@ -403,6 +414,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@25.3.1/build/js/intlTelInputWithUtils.min.js" defer></script>
-    <script src="callback-form.js?v=1.0" defer></script>
+    <script src="callback-form.js?v=1.1" defer></script>
 </body>
 </html>
